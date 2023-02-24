@@ -1,0 +1,43 @@
+:root {
+  --color-gradient: linear-gradient(
+    to right,
+    rgba(121, 67, 126, 0.77),
+    #604091e6,
+    #484368ed
+  );
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-boxs;
+  font-size: 12px;
+}
+
+body {
+  height: 100svh;
+  width: 100svw;
+  background: var(--color-gradient);
+}
+
+.fullbody {
+  padding: 20rem 10rem;
+}
+
+.d-center {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+}
+
+.d-right {
+  display: flex;
+  justify-content: end;
+  padding: 0 2rem;
+}
+
+.add-btn {
+  color: rbga(0, 0, 0, 0);
+  margin-left: 10px;
+}

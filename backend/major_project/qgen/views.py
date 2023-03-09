@@ -10,6 +10,7 @@ import os
 from io import BytesIO
 import zipfile
 from django.http import FileResponse, HttpResponse
+import json
 
 
 def unit_to_convert(unit_dim):
@@ -138,83 +139,48 @@ def create_pdf(questions):
     buffer = BytesIO()
 
     with zipfile.ZipFile(buffer, "w") as zip_archive:
-        for idx, question in enumerate(questions):
+        for student_no, student_question in enumerate(questions):
             pdf_buffer = BytesIO()
 
             pdf = canvas.Canvas(pdf_buffer)
+            for qno, question in enumerate(student_question):
 
-            options = [
-                question["correct"],
-                question["wrong1"],
-                question["wrong2"],
-                question["wrong3"]
-            ]
+                options = [
+                    question["correct"],
+                    question["wrong1"],
+                    question["wrong2"],
+                    question["wrong3"]
+                ]
 
-            random.shuffle(options)
+                random.shuffle(options)
 
-            pdf.setTitle("Questions")
+                pdf.setTitle("Questions")
 
-            pdf.drawString(50, 750 - idx*100,
-                           f"Question {idx+1}: {question['question']}")
+                pdf.drawString(50, 750 - qno*100,
+                               f"Question {qno+1}: {question['question']}")
 
-            pdf.drawString(50, 725 - idx*100,
-                           f"A: {options[0]}")
-            pdf.drawString(220, 725 - idx*100,
-                           f"B: {options[1]}")
-            pdf.drawString(50, 675 - idx*100,
-                           f"C: {options[2]}")
-            pdf.drawString(220, 675 - idx*100,
-                           f"D: {options[3]}")
+                pdf.drawString(50, 725 - qno*100,
+                               f"A: {options[0]}")
+                pdf.drawString(220, 725 - qno*100,
+                               f"B: {options[1]}")
+                pdf.drawString(50, 675 - qno*100,
+                               f"C: {options[2]}")
+                pdf.drawString(220, 675 - qno*100,
+                               f"D: {options[3]}")
+                
+                pdf.drawCentredString(300, 665-qno*100, " " * 100)
+                pdf.drawCentredString(300, 665-qno*100-10, " " * 100)
+                pdf.drawCentredString(300, 665-qno*100-20, " " * 100)
 
             pdf.save()
 
             pdf_data = pdf_buffer.getvalue()
             pdf_buffer.close()
-            zip_archive.writestr(f"question{idx+1}.pdf", pdf_data)
+            zip_archive.writestr(f"question{student_no+1}.pdf", pdf_data)
 
     zip_data = buffer.getvalue()
     buffer.close()
     return zip_data
-
-    for idx, question in enumerate(questions):
-        # loc_to_pdf = os.path.join(
-        #     settings.BASE_DIR, "pdfs", f"questions{idx+1}.pdf")
-        # pdf = canvas.Canvas(loc_to_pdf)
-
-        # pdf.setTitle("Questions")
-
-        # pdf.drawString(50, 750 - idx*100,
-        #                f"Question {idx+1}: {question['question']}")
-        buffer = BytesIO()
-
-        pdf = canvas.Canvas(buffer)
-
-        options = [
-            question["correct"],
-            question["wrong1"],
-            question["wrong2"],
-            question["wrong3"]
-        ]
-
-        random.shuffle(options)
-
-        pdf.setTitle("Questions")
-
-        pdf.drawString(50, 725 - idx*100,
-                       f"A: {options[0]}")
-        pdf.drawString(220, 725 - idx*100,
-                       f"B: {options[1]}")
-        pdf.drawString(50, 675 - idx*100,
-                       f"C: {options[2]}")
-        pdf.drawString(220, 675 - idx*100,
-                       f"D: {options[3]}")
-
-        pdf.save()
-        pdfs.append((f"set{idx+1}", buffer.getvalue()))
-
-        buffer.close()
-
-    return pdfs
 
 
 def create_zip(pdfs):
@@ -240,11 +206,14 @@ class GeneratePDF(APIView):
         questions = data["questions"]
         student_no = int(data["studentNo"])
 
-        new_question_set = []
-
         print("="*4, "working")
-        for question in questions:
-            for _ in range(student_no):
+
+        question_set = []  # q_s
+
+        for _ in range(student_no):
+            new_question_set = []  # std_q
+
+            for question in questions:
                 # new_question = {"question": question["question"]}
                 new_question = dict(question)
 
@@ -313,11 +282,14 @@ class GeneratePDF(APIView):
                             "**", "^")
                         new_wrong = "".join(
                             new_wrong.split(" "))
+
                         new_question[f"wrong{idx}"] = new_wrong
 
                 new_question_set.append(new_question)
 
-        zip_data = create_pdf(new_question_set)
+            question_set.append(new_question_set)
+
+        zip_data = create_pdf(question_set)
         response = HttpResponse(zip_data, content_type='application/zip')
         response['Content-Disposition'] = 'attachment; filename="questions.zip"'
         return response
